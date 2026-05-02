@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedBridge — Submit a Supply Request</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --teal: #1D9E75; --teal-light: #E1F5EE; --teal-dark: #0F6E56; --teal-border: #5DCAA5;
+      --text: #1a1a1a; --text-secondary: #6b7280; --text-hint: #9ca3af;
+      --bg: #ffffff; --bg-secondary: #f9fafb; --bg-tertiary: #f3f4f6;
+      --border: rgba(0,0,0,0.1); --border-med: rgba(0,0,0,0.18);
+      --radius: 8px; --radius-lg: 12px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    body { font-family: var(--font); background: var(--bg-tertiary); color: var(--text); min-height: 100vh; }
+    .wrap { max-width: 680px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+
+    .header { text-align: center; padding: 2rem 0 2.5rem; }
+    .logo { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; background: var(--teal-light); border-radius: 14px; margin-bottom: 14px; }
+    .logo svg { width: 28px; height: 28px; fill: var(--teal); }
+    .header h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.4px; }
+    .header p { font-size: 15px; color: var(--text-secondary); margin-top: 8px; line-height: 1.6; max-width: 440px; margin-left: auto; margin-right: auto; }
+
+    .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.75rem; margin-bottom: 1rem; }
+    .section-title { font-size: 15px; font-weight: 600; margin-bottom: 1.25rem; color: var(--text); }
+    .section-sub { font-size: 13px; color: var(--text-secondary); margin-top: -0.75rem; margin-bottom: 1.25rem; line-height: 1.5; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .form-row.full { grid-template-columns: 1fr; }
+    .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+    @media (max-width: 560px) { .form-row, .form-row.three { grid-template-columns: 1fr; } }
+
+    .field label { font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px; font-weight: 500; }
+    .field label .req { color: var(--teal); }
+    input[type="text"], input[type="number"], input[type="email"], select, textarea {
+      width: 100%; padding: 9px 12px; border: 0.5px solid var(--border-med); border-radius: var(--radius);
+      font-size: 14px; font-family: var(--font); color: var(--text); background: var(--bg);
+      transition: border-color 0.15s; outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(29,158,117,0.1); }
+    textarea { height: 72px; resize: vertical; }
+
+    .divider { height: 0.5px; background: var(--border); margin: 1.5rem 0; }
+
+    .btn { padding: 10px 22px; border: 0.5px solid var(--border-med); border-radius: var(--radius); font-size: 14px; cursor: pointer; background: var(--bg); color: var(--text); transition: all 0.15s; font-family: var(--font); font-weight: 500; }
+    .btn:hover { background: var(--bg-secondary); }
+    .btn.primary { background: var(--teal); color: white; border-color: var(--teal-dark); width: 100%; padding: 13px; font-size: 15px; }
+    .btn.primary:hover { background: var(--teal-dark); }
+    .btn.add { border-color: var(--teal-border); color: var(--teal-dark); }
+    .btn.add:hover { background: var(--teal-light); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .items-preview { display: flex; flex-direction: column; gap: 8px; margin-top: 1rem; }
+    .item-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg-secondary); border-radius: var(--radius); border: 0.5px solid var(--border); flex-wrap: wrap; }
+    .item-name { font-size: 14px; font-weight: 500; flex: 1; min-width: 100px; }
+    .tag { display: inline-block; background: var(--bg-tertiary); border: 0.5px solid var(--border); border-radius: 99px; padding: 2px 10px; font-size: 12px; color: var(--text-secondary); }
+    .pill-need { background: #EEEDFE; color: #534AB7; border-radius: 99px; padding: 3px 10px; font-size: 11px; font-weight: 600; }
+    .delete-btn { background: none; border: none; cursor: pointer; color: var(--text-hint); font-size: 18px; padding: 0 4px; line-height: 1; }
+    .delete-btn:hover { color: #A32D2D; }
+
+    .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: var(--radius-lg); font-size: 14px; font-weight: 500; z-index: 999; display: none; max-width: 320px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .toast.success { background: var(--teal); color: white; }
+    .toast.error { background: #A32D2D; color: white; }
+
+    /* Success screen */
+    .success-screen { display: none; text-align: center; padding: 3rem 1rem; }
+    .success-icon { width: 64px; height: 64px; background: var(--teal-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; }
+    .success-icon svg { width: 32px; height: 32px; fill: var(--teal); }
+    .success-screen h2 { font-size: 20px; font-weight: 600; margin-bottom: 10px; }
+    .success-screen p { font-size: 15px; color: var(--text-secondary); line-height: 1.6; max-width: 380px; margin: 0 auto 1.5rem; }
+    .success-items { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin: 1.25rem auto; max-width: 420px; text-align: left; }
+    .success-items .s-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px; }
+    .success-items .s-item { font-size: 14px; padding: 5px 0; border-bottom: 0.5px solid var(--border); display: flex; justify-content: space-between; }
+    .success-items .s-item:last-child { border-bottom: none; }
+
+    .footer { text-align: center; margin-top: 2rem; font-size: 13px; color: var(--text-hint); }
+    .footer a { color: var(--teal); text-decoration: none; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-7 14a1 1 0 0 1-1-1v-3H8a1 1 0 0 1 0-2h3V8a1 1 0 0 1 2 0v3h3a1 1 0 0 1 0 2h-3v3a1 1 0 0 1-1 1z"/>
+      </svg>
+    </div>
+    <h1>MedBridge — Supply request</h1>
+    <p>Tell us what your facility needs. We'll do our best to match you with available donated supplies.</p>
+  </div>
+
+  <!-- FORM -->
+  <div id="form-view">
+    <div class="card">
+      <div class="section-title">Your facility</div>
+      <div class="form-row">
+        <div class="field"><label>Facility / hospital name <span class="req">*</span></label><input type="text" id="r-org" placeholder="e.g. Kenyatta National Hospital"></div>
+        <div class="field"><label>Country <span class="req">*</span></label><input type="text" id="r-country" placeholder="e.g. Kenya"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Contact name</label><input type="text" id="r-contact" placeholder="Your full name"></div>
+        <div class="field"><label>Contact email</label><input type="email" id="r-email" placeholder="you@facility.org"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Items needed</div>
+      <div class="section-sub">Add each item your facility needs. Be as specific as possible — it helps us find the right match.</div>
+
+      <div class="form-row">
+        <div class="field"><label>Item name</label><input type="text" id="r-item" placeholder="e.g. Surgical gloves (size M)"></div>
+        <div class="field"><label>Category</label>
+          <select id="r-cat">
+            <option value="">Select a category…</option>
+            <option>PPE</option>
+            <option>Wound care</option>
+            <option>IV & infusion</option>
+            <option>Diagnostics</option>
+            <option>Surgical supplies</option>
+            <option>Respiratory</option>
+            <option>Lab supplies</option>
+            <option>Other consumables</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Quantity needed</label><input type="number" id="r-qty" placeholder="e.g. 500" min="1"></div>
+        <div class="field"><label>Urgency</label>
+          <select id="r-urgency">
+            <option value="">Select…</option>
+            <option>Critical — needed within 2 weeks</option>
+            <option>Urgent — needed within a month</option>
+            <option>Standard — within 3 months</option>
+            <option>Planning ahead — 3+ months</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="field"><label>Notes / specifications</label><textarea id="r-notes" placeholder="Any specific requirements, brand preferences, expiry minimums, or other details…"></textarea></div>
+      </div>
+
+      <button class="btn add" onclick="addItem()">+ Add item to list</button>
+
+      <div class="items-preview" id="r-preview"></div>
+
+      <div class="divider"></div>
+
+      <button class="btn primary" id="r-submit" onclick="submitRequest()">Submit request</button>
+      <p style="font-size:12px; color:var(--text-hint); text-align:center; margin-top:10px;">We'll review your request and contact you when we find a match.</p>
+    </div>
+  </div>
+
+  <!-- SUCCESS SCREEN -->
+  <div class="success-screen" id="success-view">
+    <div class="success-icon">
+      <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+    </div>
+    <h2>Request submitted!</h2>
+    <p>Thank you. We've received your request and will be in touch as soon as we find matching supplies.</p>
+    <div class="success-items" id="success-summary"></div>
+    <button class="btn" onclick="resetForm()" style="margin-top:0.5rem;">Submit another request</button>
+  </div>
+
+  <div class="footer">
+    Powered by <a href="#">MedBridge</a> — connecting medical donations to communities in need
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://gnyxeitvvhidpadwuscu.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdueXhlaXR2dmhpZHBhZHd1c2N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MjEwNzYsImV4cCI6MjA5MzI5NzA3Nn0.7-RkXRMltuvZaz2dH-1qrUVuN6Jb2F6p5x91A1rfROo';
+const H = { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=representation' };
+
+let items = [];
+
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + (type || 'success'); t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3500);
+}
+
+function val(id) { return document.getElementById(id).value.trim(); }
+function clear(...ids) { ids.forEach(id => document.getElementById(id).value = ''); }
+
+async function api(path, opts) {
+  const r = await fetch(SUPABASE_URL + '/rest/v1/' + path, { headers: H, ...opts });
+  if (!r.ok) throw new Error(await r.text());
+  const txt = await r.text(); return txt ? JSON.parse(txt) : [];
+}
+
+function addItem() {
+  const item = val('r-item');
+  if (!item) { toast('Please enter an item name.', 'error'); return; }
+  items.push({
+    item_name: item,
+    category: val('r-cat'),
+    quantity: parseInt(val('r-qty')) || null,
+    notes: [val('r-urgency'), val('r-notes')].filter(Boolean).join(' | ') || null
+  });
+  clear('r-item', 'r-qty', 'r-notes');
+  document.getElementById('r-cat').value = '';
+  document.getElementById('r-urgency').value = '';
+  renderPreview();
+}
+
+function renderPreview() {
+  document.getElementById('r-preview').innerHTML = items.map((it, i) => `
+    <div class="item-row">
+      <span class="item-name">${it.item_name}</span>
+      ${it.category ? `<span class="tag">${it.category}</span>` : ''}
+      ${it.quantity ? `<span class="pill-need">need ${it.quantity}</span>` : ''}
+      <button class="delete-btn" onclick="items.splice(${i},1);renderPreview()">×</button>
+    </div>`).join('');
+}
+
+async function submitRequest() {
+  const org = val('r-org');
+  const country = val('r-country');
+  if (!org) { toast('Please enter your facility name.', 'error'); return; }
+  if (!country) { toast('Please enter your country.', 'error'); return; }
+  if (!items.length) { toast('Please add at least one item you need.', 'error'); return; }
+
+  const btn = document.getElementById('r-submit');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Submitting…';
+
+  try {
+    const [recipient] = await api('recipients', {
+      method: 'POST',
+      body: JSON.stringify({ org, country, contact: val('r-contact'), email: val('r-email') })
+    });
+    await api('recipient_items', {
+      method: 'POST',
+      body: JSON.stringify(items.map(it => ({ ...it, recipient_id: recipient.id })))
+    });
+    showSuccess(org, country);
+  } catch(e) {
+    toast('Submission failed: ' + e.message, 'error');
+    btn.disabled = false; btn.innerHTML = 'Submit request';
+  }
+}
+
+function showSuccess(org, country) {
+  document.getElementById('form-view').style.display = 'none';
+  const sv = document.getElementById('success-view');
+  sv.style.display = 'block';
+  document.getElementById('success-summary').innerHTML = `
+    <div class="s-label">Submitted for ${org}, ${country}</div>
+    ${items.map(it => `
+      <div class="s-item">
+        <span>${it.item_name}${it.category ? ' — ' + it.category : ''}</span>
+        ${it.quantity ? `<span style="color:var(--text-secondary)">x${it.quantity}</span>` : ''}
+      </div>`).join('')}`;
+}
+
+function resetForm() {
+  items = [];
+  ['r-org','r-country','r-contact','r-email','r-item','r-qty','r-notes'].forEach(id => document.getElementById(id).value = '');
+  ['r-cat','r-urgency'].forEach(id => document.getElementById(id).value = '');
+  renderPreview();
+  document.getElementById('success-view').style.display = 'none';
+  document.getElementById('form-view').style.display = 'block';
+  const btn = document.getElementById('r-submit');
+  btn.disabled = false; btn.innerHTML = 'Submit request';
+}
+</script>
+</body>
+</html>

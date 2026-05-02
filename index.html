@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedBridge — Supply Matching Portal</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --teal: #1D9E75; --teal-light: #E1F5EE; --teal-dark: #0F6E56; --teal-border: #5DCAA5;
+      --purple: #534AB7; --purple-light: #EEEDFE; --purple-dark: #3C3489; --purple-border: #AFA9EC;
+      --amber: #BA7517; --amber-light: #FAEEDA; --amber-dark: #854F0B; --amber-border: #EF9F27;
+      --red-light: #FCEBEB; --red: #A32D2D;
+      --text: #1a1a1a; --text-secondary: #6b7280; --text-hint: #9ca3af;
+      --bg: #ffffff; --bg-secondary: #f9fafb; --bg-tertiary: #f3f4f6;
+      --border: rgba(0,0,0,0.1); --border-med: rgba(0,0,0,0.18);
+      --radius: 8px; --radius-lg: 12px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    body { font-family: var(--font); background: var(--bg-tertiary); color: var(--text); min-height: 100vh; }
+    .app { max-width: 860px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+    .header { text-align: center; padding: 2rem 0 2.5rem; }
+    .header h1 { font-size: 26px; font-weight: 600; color: var(--text); letter-spacing: -0.5px; }
+    .header p { font-size: 15px; color: var(--text-secondary); margin-top: 8px; }
+    .logo { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; background: var(--teal-light); border-radius: 12px; margin-bottom: 12px; }
+    .logo svg { width: 26px; height: 26px; fill: var(--teal); }
+    .tabs { display: flex; gap: 6px; margin-bottom: 1.5rem; background: var(--bg-secondary); padding: 5px; border-radius: var(--radius-lg); border: 0.5px solid var(--border); }
+    .tab { flex: 1; padding: 9px 12px; border: none; border-radius: var(--radius); font-size: 14px; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.15s; font-family: var(--font); text-align: center; }
+    .tab:hover { background: var(--bg); }
+    .tab.active { background: var(--bg); color: var(--text); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .tab.t-recipient.active { color: var(--teal-dark); }
+    .tab.t-admin.active { color: var(--purple-dark); }
+    .tab.t-matches.active { color: var(--amber-dark); }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: 15px; font-weight: 600; margin-bottom: 1.25rem; color: var(--text); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+    .form-row.full { grid-template-columns: 1fr; }
+    @media (max-width: 600px) { .form-row, .form-row.three { grid-template-columns: 1fr; } }
+    .field label { font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px; font-weight: 500; }
+    input[type="text"], input[type="number"], input[type="date"], input[type="email"], select, textarea {
+      width: 100%; padding: 8px 12px; border: 0.5px solid var(--border-med); border-radius: var(--radius);
+      font-size: 14px; font-family: var(--font); color: var(--text); background: var(--bg);
+      transition: border-color 0.15s; outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(29,158,117,0.1); }
+    textarea { height: 70px; resize: vertical; }
+    .btn { padding: 9px 20px; border: 0.5px solid var(--border-med); border-radius: var(--radius); font-size: 14px; cursor: pointer; background: var(--bg); color: var(--text); transition: all 0.15s; font-family: var(--font); font-weight: 500; }
+    .btn:hover { background: var(--bg-secondary); }
+    .btn.primary { background: var(--teal); color: white; border-color: var(--teal-dark); }
+    .btn.primary:hover { background: var(--teal-dark); }
+    .btn.purple { background: var(--purple); color: white; border-color: var(--purple-dark); }
+    .btn.purple:hover { background: var(--purple-dark); }
+    .btn.amber { background: var(--amber); color: white; border-color: var(--amber-dark); }
+    .btn.amber:hover { background: var(--amber-dark); }
+    .btn.sm { padding: 6px 14px; font-size: 13px; }
+    .btn.danger-sm { padding: 6px 14px; font-size: 13px; background: var(--red-light); color: var(--red); border-color: #f7c1c1; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .divider { height: 0.5px; background: var(--border); margin: 1.25rem 0; }
+    .section-sub { font-size: 14px; font-weight: 600; margin-bottom: 1rem; color: var(--text); }
+    .items-preview { display: flex; flex-direction: column; gap: 8px; margin-top: 1rem; }
+    .item-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg-secondary); border-radius: var(--radius); border: 0.5px solid var(--border); flex-wrap: wrap; }
+    .item-name { font-size: 14px; font-weight: 500; flex: 1; min-width: 100px; }
+    .tag { display: inline-block; background: var(--bg-tertiary); border: 0.5px solid var(--border); border-radius: 99px; padding: 2px 10px; font-size: 12px; color: var(--text-secondary); }
+    .pill { border-radius: 99px; padding: 3px 10px; font-size: 11px; font-weight: 600; }
+    .pill.donated { background: var(--teal-light); color: var(--teal-dark); }
+    .pill.needed { background: var(--purple-light); color: var(--purple-dark); }
+    .pill.match { background: var(--amber-light); color: var(--amber-dark); }
+    .pill.coordinated { background: var(--teal-light); color: var(--teal-dark); }
+    .delete-btn { background: none; border: none; cursor: pointer; color: var(--text-hint); font-size: 18px; padding: 0 4px; line-height: 1; }
+    .delete-btn:hover { color: var(--red); }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+    @media (max-width: 600px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+    .stat { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.1rem; text-align: center; }
+    .stat-num { font-size: 28px; font-weight: 600; color: var(--text); }
+    .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+    .filter-row { display: flex; gap: 8px; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center; }
+    .filter-row input, .filter-row select { max-width: 200px; flex: 1; }
+    .match-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+    .match-orgs { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+    .match-side { flex: 1; min-width: 100px; }
+    .match-side .org-name { font-size: 13px; font-weight: 600; }
+    .match-side .org-loc { font-size: 12px; color: var(--text-secondary); }
+    .match-arrow { font-size: 20px; color: var(--text-hint); }
+    .match-item { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .match-meta { display: flex; gap: 10px; font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+    .match-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .empty { text-align: center; padding: 3rem 1rem; color: var(--text-secondary); font-size: 14px; }
+    .empty-icon { font-size: 32px; margin-bottom: 10px; }
+    .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: var(--radius-lg); font-size: 14px; font-weight: 500; z-index: 999; display: none; max-width: 320px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .toast.success { background: var(--teal); color: white; }
+    .toast.error { background: var(--red); color: white; }
+    .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading { text-align: center; padding: 3rem; color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-7 14a1 1 0 0 1-1-1v-3H8a1 1 0 0 1 0-2h3V8a1 1 0 0 1 2 0v3h3a1 1 0 0 1 0 2h-3v3a1 1 0 0 1-1 1z"/>
+      </svg>
+    </div>
+    <h1>MedBridge</h1>
+    <p>Connecting donated medical supplies to facilities that need them most</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab t-recipient active" onclick="switchTab('recipient')">Recipient request</button>
+    <button class="tab t-admin" onclick="switchTab('admin')">Admin — donor intake</button>
+    <button class="tab t-matches" onclick="switchTab('matches')">Matches <span id="match-badge"></span></button>
+  </div>
+
+  <!-- RECIPIENT PANEL -->
+  <div id="panel-recipient" class="panel active">
+    <div class="card">
+      <div class="card-title">Submit a supply request</div>
+      <div class="form-row">
+        <div class="field"><label>Facility / hospital name *</label><input type="text" id="r-org" placeholder="e.g. Kenyatta National Hospital"></div>
+        <div class="field"><label>Country *</label><input type="text" id="r-country" placeholder="e.g. Kenya"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Contact name</label><input type="text" id="r-contact" placeholder="Full name"></div>
+        <div class="field"><label>Contact email</label><input type="email" id="r-email" placeholder="email@hospital.org"></div>
+      </div>
+      <div class="divider"></div>
+      <div class="section-sub">Add items needed</div>
+      <div class="form-row three">
+        <div class="field"><label>Item name</label><input type="text" id="r-item" placeholder="e.g. Surgical gloves (M)"></div>
+        <div class="field"><label>Category</label>
+          <select id="r-cat"><option value="">Select…</option><option>PPE</option><option>Wound care</option><option>IV & infusion</option><option>Diagnostics</option><option>Surgical supplies</option><option>Respiratory</option><option>Lab supplies</option><option>Other consumables</option></select>
+        </div>
+        <div class="field"><label>Quantity needed</label><input type="number" id="r-qty" placeholder="e.g. 500" min="1"></div>
+      </div>
+      <div class="form-row full">
+        <div class="field"><label>Notes / specifications</label><textarea id="r-notes" placeholder="Specs, expiry requirements, urgency…"></textarea></div>
+      </div>
+      <button class="btn" onclick="addNeedItem()">+ Add item to list</button>
+      <div class="items-preview" id="r-preview"></div>
+      <div style="margin-top:1.25rem;">
+        <button class="btn primary" id="r-submit" onclick="submitRecipient()">Submit request</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN / DONOR PANEL -->
+  <div id="panel-admin" class="panel">
+    <div class="card">
+      <div class="card-title">Log donated supplies</div>
+      <div class="form-row">
+        <div class="field"><label>Donor hospital / org *</label><input type="text" id="d-org" placeholder="e.g. Mass General Hospital"></div>
+        <div class="field"><label>City, State</label><input type="text" id="d-location" placeholder="e.g. Boston, MA"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Contact name</label><input type="text" id="d-contact" placeholder="Donor contact"></div>
+        <div class="field"><label>Contact email</label><input type="email" id="d-email" placeholder="email@hospital.org"></div>
+      </div>
+      <div class="divider"></div>
+      <div class="section-sub">Add donated items</div>
+      <div class="form-row three">
+        <div class="field"><label>Item name</label><input type="text" id="d-item" placeholder="e.g. Sterile gauze 4x4"></div>
+        <div class="field"><label>Category</label>
+          <select id="d-cat"><option value="">Select…</option><option>PPE</option><option>Wound care</option><option>IV & infusion</option><option>Diagnostics</option><option>Surgical supplies</option><option>Respiratory</option><option>Lab supplies</option><option>Other consumables</option></select>
+        </div>
+        <div class="field"><label>Quantity available</label><input type="number" id="d-qty" placeholder="e.g. 200" min="1"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Expiry date (if applicable)</label><input type="date" id="d-expiry"></div>
+        <div class="field"><label>Condition</label>
+          <select id="d-condition"><option value="">Select…</option><option>New / unopened</option><option>Near-expiry</option><option>Opened, unused</option></select>
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="field"><label>Notes</label><textarea id="d-notes" placeholder="Any details about the donation…"></textarea></div>
+      </div>
+      <button class="btn" onclick="addDonorItem()">+ Add item to list</button>
+      <div class="items-preview" id="d-preview"></div>
+      <div style="margin-top:1.25rem;">
+        <button class="btn purple" id="d-submit" onclick="submitDonor()">Save donation record</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MATCHES PANEL -->
+  <div id="panel-matches" class="panel">
+    <div class="stats">
+      <div class="stat"><div class="stat-num" id="s-donated">—</div><div class="stat-label">Items donated</div></div>
+      <div class="stat"><div class="stat-num" id="s-needed">—</div><div class="stat-label">Items needed</div></div>
+      <div class="stat"><div class="stat-num" id="s-matched">—</div><div class="stat-label">Matches found</div></div>
+      <div class="stat"><div class="stat-num" id="s-coordinated">—</div><div class="stat-label">Coordinated</div></div>
+    </div>
+    <div class="filter-row">
+      <input type="text" id="f-search" placeholder="Search item or org…" oninput="renderMatches()">
+      <select id="f-cat" onchange="renderMatches()">
+        <option value="">All categories</option>
+        <option>PPE</option><option>Wound care</option><option>IV & infusion</option><option>Diagnostics</option><option>Surgical supplies</option><option>Respiratory</option><option>Lab supplies</option><option>Other consumables</option>
+      </select>
+      <select id="f-status" onchange="renderMatches()">
+        <option value="">All statuses</option>
+        <option value="pending">Pending coordination</option>
+        <option value="coordinated">Coordinated</option>
+      </select>
+      <button class="btn sm" onclick="loadMatches()">Refresh</button>
+    </div>
+    <div id="matches-list"><div class="loading">Loading…</div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://gnyxeitvvhidpadwuscu.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdueXhlaXR2dmhpZHBhZHd1c2N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MjEwNzYsImV4cCI6MjA5MzI5NzA3Nn0.7-RkXRMltuvZaz2dH-1qrUVuN6Jb2F6p5x91A1rfROo';
+const H = { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=representation' };
+
+let tempDonor = [], tempRecipient = [], allMatches = [];
+
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + (type || 'success'); t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3200);
+}
+
+async function api(path, opts) {
+  const r = await fetch(SUPABASE_URL + '/rest/v1/' + path, { headers: H, ...opts });
+  if (!r.ok) throw new Error(await r.text());
+  const txt = await r.text(); return txt ? JSON.parse(txt) : [];
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('.t-' + tab).classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  if (tab === 'matches') loadMatches();
+}
+
+function val(id) { return document.getElementById(id).value.trim(); }
+function clear(...ids) { ids.forEach(id => document.getElementById(id).value = ''); }
+
+// DONOR
+function addDonorItem() {
+  const item = val('d-item');
+  if (!item) { toast('Please enter an item name.', 'error'); return; }
+  tempDonor.push({ item_name: item, category: val('d-cat'), quantity: parseInt(val('d-qty')) || null, expiry_date: val('d-expiry') || null, condition: val('d-condition'), notes: val('d-notes') });
+  clear('d-item','d-qty','d-expiry','d-notes','d-cat','d-condition');
+  renderDonorPreview();
+}
+function renderDonorPreview() {
+  document.getElementById('d-preview').innerHTML = tempDonor.map((it,i) => `
+    <div class="item-row">
+      <span class="item-name">${it.item_name}</span>
+      ${it.category ? `<span class="tag">${it.category}</span>` : ''}
+      ${it.quantity ? `<span class="pill donated">x${it.quantity}</span>` : ''}
+      ${it.condition ? `<span class="tag">${it.condition}</span>` : ''}
+      <button class="delete-btn" onclick="tempDonor.splice(${i},1);renderDonorPreview()">×</button>
+    </div>`).join('');
+}
+async function submitDonor() {
+  const org = val('d-org');
+  if (!org) { toast('Please enter the donor organization name.', 'error'); return; }
+  if (!tempDonor.length) { toast('Please add at least one item.', 'error'); return; }
+  const btn = document.getElementById('d-submit');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Saving…';
+  try {
+    const [donor] = await api('donors', { method: 'POST', body: JSON.stringify({ org, location: val('d-location'), contact: val('d-contact'), email: val('d-email') }) });
+    await api('donor_items', { method: 'POST', body: JSON.stringify(tempDonor.map(it => ({ ...it, donor_id: donor.id, coordinated: false }))) });
+    tempDonor = []; clear('d-org','d-location','d-contact','d-email'); renderDonorPreview();
+    toast('Donation record saved — ' + org);
+    loadStats();
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+  btn.disabled = false; btn.innerHTML = 'Save donation record';
+}
+
+// RECIPIENT
+function addNeedItem() {
+  const item = val('r-item');
+  if (!item) { toast('Please enter an item name.', 'error'); return; }
+  tempRecipient.push({ item_name: item, category: val('r-cat'), quantity: parseInt(val('r-qty')) || null, notes: val('r-notes') });
+  clear('r-item','r-qty','r-notes','r-cat');
+  renderRecipientPreview();
+}
+function renderRecipientPreview() {
+  document.getElementById('r-preview').innerHTML = tempRecipient.map((it,i) => `
+    <div class="item-row">
+      <span class="item-name">${it.item_name}</span>
+      ${it.category ? `<span class="tag">${it.category}</span>` : ''}
+      ${it.quantity ? `<span class="pill needed">need ${it.quantity}</span>` : ''}
+      <button class="delete-btn" onclick="tempRecipient.splice(${i},1);renderRecipientPreview()">×</button>
+    </div>`).join('');
+}
+async function submitRecipient() {
+  const org = val('r-org');
+  if (!org) { toast('Please enter your facility name.', 'error'); return; }
+  if (!tempRecipient.length) { toast('Please add at least one item needed.', 'error'); return; }
+  const btn = document.getElementById('r-submit');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Submitting…';
+  try {
+    const [recipient] = await api('recipients', { method: 'POST', body: JSON.stringify({ org, country: val('r-country'), contact: val('r-contact'), email: val('r-email') }) });
+    await api('recipient_items', { method: 'POST', body: JSON.stringify(tempRecipient.map(it => ({ ...it, recipient_id: recipient.id }))) });
+    tempRecipient = []; clear('r-org','r-country','r-contact','r-email'); renderRecipientPreview();
+    toast('Request submitted — thank you, ' + org + '!');
+    loadStats();
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+  btn.disabled = false; btn.innerHTML = 'Submit request';
+}
+
+// MATCHES
+function normalize(s) { return (s||'').toLowerCase().replace(/[^a-z0-9]/g,' ').trim(); }
+function score(a, b) {
+  const aw = new Set(normalize(a.item_name).split(' ').filter(w=>w.length>2));
+  const bw = new Set(normalize(b.item_name).split(' ').filter(w=>w.length>2));
+  let overlap = 0; aw.forEach(w => { if(bw.has(w)) overlap++; });
+  let s = overlap / Math.max(aw.size, bw.size, 1);
+  if (a.category && b.category && a.category === b.category) s += 0.2;
+  return Math.min(s, 1);
+}
+
+async function loadMatches() {
+  document.getElementById('matches-list').innerHTML = '<div class="loading">Loading…</div>';
+  try {
+    const [di, ri] = await Promise.all([
+      api('donor_items?select=*,donors(org,location,contact,email)'),
+      api('recipient_items?select=*,recipients(org,country,contact,email)')
+    ]);
+    document.getElementById('s-donated').textContent = di.length;
+    document.getElementById('s-needed').textContent = ri.length;
+    document.getElementById('s-coordinated').textContent = di.filter(d=>d.coordinated).length;
+    allMatches = [];
+    di.forEach(d => ri.forEach(r => { const sc = score(d,r); if(sc>=0.35) allMatches.push({d,r,sc}); }));
+    allMatches.sort((a,b) => b.sc - a.sc);
+    document.getElementById('s-matched').textContent = allMatches.length;
+    document.getElementById('match-badge').textContent = allMatches.length ? '(' + allMatches.length + ')' : '';
+    renderMatches();
+  } catch(e) { document.getElementById('matches-list').innerHTML = '<div class="empty">Could not load data: ' + e.message + '</div>'; }
+}
+
+function renderMatches() {
+  const search = val('f-search').toLowerCase();
+  const cat = val('f-cat');
+  const status = val('f-status');
+  const el = document.getElementById('matches-list');
+  let list = allMatches.filter(m => {
+    if (search) { const h = [m.d.item_name,m.r.item_name,m.d.donors?.org,m.r.recipients?.org].join(' ').toLowerCase(); if(!h.includes(search)) return false; }
+    if (cat && m.d.category !== cat && m.r.category !== cat) return false;
+    if (status === 'coordinated' && !m.d.coordinated) return false;
+    if (status === 'pending' && m.d.coordinated) return false;
+    return true;
+  });
+  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div>No matches found. Add donor and recipient records to see matches here.</div>'; return; }
+  el.innerHTML = list.map(m => {
+    const pct = Math.round(m.sc * 100);
+    const donor = m.d.donors || {}; const recip = m.r.recipients || {};
+    const qty = [m.d.quantity ? 'Available: '+m.d.quantity : '', m.r.quantity ? 'Needed: '+m.r.quantity : ''].filter(Boolean).join(' | ');
+    const emails = [donor.email, recip.email].filter(Boolean).join(', ');
+    const isCoord = m.d.coordinated;
+    return `<div class="match-card">
+      <div class="match-orgs">
+        <div class="match-side"><div class="org-name">${donor.org||'Unknown donor'}</div><div class="org-loc">${donor.location||'USA'}</div></div>
+        <div class="match-arrow">→</div>
+        <div class="match-side" style="text-align:right"><div class="org-name">${recip.org||'Unknown facility'}</div><div class="org-loc">${recip.country||''}</div></div>
+      </div>
+      <div class="match-item">${m.d.item_name} ↔ ${m.r.item_name}</div>
+      <div class="match-meta">
+        ${m.d.category ? `<span class="tag">${m.d.category}</span>` : ''}
+        ${qty ? `<span>${qty}</span>` : ''}
+        ${m.d.condition ? `<span>Condition: ${m.d.condition}</span>` : ''}
+        ${m.d.expiry_date ? `<span>Expiry: ${m.d.expiry_date}</span>` : ''}
+        <span style="margin-left:auto">${isCoord ? '<span class="pill coordinated">Coordinated</span>' : `<span class="pill match">Match ${pct}%</span>`}</span>
+      </div>
+      <div class="match-actions">
+        ${!isCoord
+          ? `<button class="btn sm amber" onclick="markCoord(${m.d.id}, true, this)">Mark as coordinated</button>`
+          : `<button class="btn sm" onclick="markCoord(${m.d.id}, false, this)">Undo coordination</button>`}
+        ${emails ? `<button class="btn sm" onclick="copyEmails('${emails}')">Copy contact emails</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function markCoord(id, val, btn) {
+  btn.disabled = true;
+  try {
+    await api('donor_items?id=eq.'+id, { method: 'PATCH', body: JSON.stringify({ coordinated: val }) });
+    toast(val ? 'Marked as coordinated!' : 'Coordination undone.');
+    loadMatches();
+  } catch(e) { toast('Error: ' + e.message, 'error'); btn.disabled = false; }
+}
+
+function copyEmails(emails) {
+  navigator.clipboard.writeText(emails).then(() => toast('Emails copied!')).catch(() => toast('Emails: ' + emails));
+}
+
+async function loadStats() {
+  try {
+    const [di, ri, ci] = await Promise.all([
+      api('donor_items?select=id'), api('recipient_items?select=id'), api('donor_items?select=id&coordinated=eq.true')
+    ]);
+    document.getElementById('s-donated').textContent = di.length;
+    document.getElementById('s-needed').textContent = ri.length;
+    document.getElementById('s-coordinated').textContent = ci.length;
+  } catch(e) {}
+}
+
+loadStats();
+</script>
+</body>
+</html>
